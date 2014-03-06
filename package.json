@@ -1,6 +1,6 @@
 {
   "name": "framecut",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Lib to cut TCP stream into frame packets delimited by length or special delimiter.",
   "main": "framecut.js",
   "scripts": {
@@ -16,12 +16,12 @@
   ],
   "author": "iraasta <iraasta@gmail.com>",
   "license": "ISC",
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/iraasta/snakecharmer.git"
-    },
-    "bugs": {
-        "url": "https://github.com/iraasta/snakecharmer/issues"
-    },
-    "homepage": "https://github.com/iraasta/snakecharmer"
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/iraasta/snakecharmer.git"
+  },
+  "bugs": {
+    "url": "https://github.com/iraasta/snakecharmer/issues"
+  },
+  "homepage": "https://github.com/iraasta/snakecharmer"
 }
