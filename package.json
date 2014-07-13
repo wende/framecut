@@ -1,6 +1,6 @@
 {
   "name": "framecut",
-  "version": "0.2.0",
+  "version": "0.8.23",
   "description": "Lib to cut TCP stream into frame packets delimited by length or special delimiter.",
   "main": "framecut.js",
   "scripts": {

@@ -73,7 +73,7 @@ function handleFrameL(data, frame, client)
     {
         _currentFrameLength = Buffer.concat([new Buffer(new Array(4-_frameLL)),
             _frame.slice(0,_frameLL)],
-            4).readInt32BE(0);
+            4).readUInt32BE(0);
     }
     if(_currentFrameLength != 0)
     {
