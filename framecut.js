@@ -11,12 +11,9 @@ module.exports = framecut;
 
 
 var _frameLL = 1;
-var _currentFrameLength = 0;
 var _cb;
 var _delimiter = "|";
 var _byLength = true;
-var _frame = new Buffer(0);
-var _word = "";
 
 framecut.debug = false;
 
@@ -32,13 +29,17 @@ framecut.setLengthsLength = function(val){
  * @param {Function} cb
  * @param {Number} [frameLengthSize]
  */
-framecut.initByLength = function(cb , frameLengthSize){
+framecut.initByLength = function(cb , frameLengthSize, old){
     _byLength = true;
     _frameLL = frameLengthSize || _frameLL;
     _cb = cb;
-    framecut.handleFrame = function(data, client)
+    if(old)framecut.handleFrame = function(data, client)
     {
-        return handleFrameL(data,_frame,client);
+        return handleFrameL_OLD(data, new Buffer(0) ,client);
+    };
+    else framecut.handleFrame = function(data, client)
+    {
+        return handleFrameL(data , client);
     }
 } ;
 /**
@@ -66,47 +67,84 @@ framecut.handleFrame = function(data, client){return null};
 
 
 
-function handleFrameL(data, frame, client)
-{
-    _frame = Buffer.concat([frame,data]);
-    if(_frame.length  >= _frameLL && !_currentFrameLength)
+function handleFrameL_OLD(data, frame, client){
+    if(client._currentFrameLength == null) client._currentFrameLength = 0;
+    client._frame = Buffer.concat([frame,data]);
+    if(client._frame.length  >= _frameLL && !client._currentFrameLength)
     {
-        _currentFrameLength = Buffer.concat([new Buffer(new Array(4-_frameLL)),
-            _frame.slice(0,_frameLL)],
+        client._currentFrameLength = Buffer.concat([new Buffer(new Array(4-_frameLL)),
+            client._frame.slice(0,_frameLL)],
             4).readUInt32BE(0);
     }
-    if(_currentFrameLength != 0)
+    if(client._currentFrameLength != 0)
     {
-        if(_frame.length >= _currentFrameLength + _frameLL)
+        if(client._frame.length >= client._currentFrameLength + _frameLL)
         {
-            var content = _frame.slice(_frameLL,_currentFrameLength + _frameLL);
+            var content = client._frame.slice(_frameLL,client._currentFrameLength + _frameLL);
             _cb(content, client);
 
             //Reset the data after finishing
-            if(content.length+1 < _currentFrameLength + _frameLL)
+            if(content.length+1 < client._currentFrameLength + _frameLL)
             {
-                _frame = _frame.slice(_currentFrameLength + _frameLL);
-                handleFrameL(new Buffer(0),_frame);
+                client._frame = client._frame.slice(client._currentFrameLength + _frameLL);
+                handleFrameL(new Buffer(0),client._frame);
             }else{
-                _frame =  new Buffer(0);
+                client._frame =  new Buffer(0);
             }
-            _currentFrameLength = 0;
+            client._currentFrameLength = 0;
         }
     }
-    return _frame;
+    return client._frame;
 }
-var cake;
-var i;
-var last;
+
 function handleFrameD(data, client)
 {
-    _word += data.toString();
-    cake = _word.split(_delimiter);
-    last = cake.length - 1;
-    i = last;
+    if(!client._word) client._word = "";
+    client._word += data.toString();
+    client._cake = client._word.split(_delimiter);
+    client._last = client._cake.length - 1;
+    var i = client._last;
     while(--i > -1)
     {
-        _cb(cake[i], client);
+        _cb(client._cake[i], client);
     }
-    _word = cake[last];
+    client._word = client._cake[client._last];
+}
+
+/**
+ *
+ * @param {Buffer} data
+ * @param client
+ */
+function handleFrameL(data, client) {
+    if(data.length == 0) return;
+    var len = client._actualLength;
+    if (!len) {
+        len = data.readUInt8(0);
+        client._actualLength = len;
+        client._msg = new Buffer(len);
+        data = data.slice(1);
+    }
+
+    var msg = client._msg;
+    var written = client._written ? client._written : 0;
+
+    var l = Math.min(data.length, len - written);
+    for (var i = 0; i < l; i++)
+    {
+        msg[written + i] = data[i];
+    }
+    written += i;
+    if(written === len)
+    {
+        _cb(msg, client);
+        client._actualLength = 0;
+        client._written = 0;
+    }
+    else {
+        if (!client._written) client._written = 0;
+        client._written += written;
+        client._msg = msg;
+    }
+    handleFrameL( data.slice(i), client)
 }
